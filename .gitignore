@@ -1,0 +1,9 @@
+# Ignore the real environment file
+docker/.env
+
+# Ignore any SSL keys we generate later for Level 2
+nginx/ssl/*.pem
+nginx/ssl/*.key
+
+# Ignore OS-specific files
+.DS_Store
