@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine # Changed the postgres image from v15 to v16 as Gitlab requires version 16 or higher
     container_name: gitlab-postgres
     restart: unless-stopped
     environment:
