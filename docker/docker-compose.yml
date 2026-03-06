@@ -18,6 +18,49 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab-ce
+    restart: unless-stopped
+    hostname: ${GITLAB_HOSTNAME}
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://${GITLAB_HOSTNAME}:8080'
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'unicode'
+        gitlab_rails['db_host'] = 'postgres'
+        gitlab_rails['db_port'] = 5432
+        gitlab_rails['db_database'] = '${POSTGRES_DB}'
+        gitlab_rails['db_username'] = '${POSTGRES_USER}'
+        gitlab_rails['db_password'] = '${POSTGRES_PASSWORD}'
+        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD}'
+    ports:
+      - "8081:80" # Chnaged from 8080 to 8081 to avoid conflicts with other services
+      - "8443:443" 
+      - "2223:22" # Changed from 2222 to 2223 to avoid conflicts with other services
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: '2.0'
+  
 
 networks:
   frontend:
@@ -28,3 +71,7 @@ networks:
 
 volumes:
   postgres_data:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  runner_config:
