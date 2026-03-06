@@ -26,15 +26,17 @@ services:
     hostname: ${GITLAB_HOSTNAME}
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://${GITLAB_HOSTNAME}:8080'
+        external_url 'http://${GITLAB_HOSTNAME}:8081' # Match your host port
         gitlab_rails['db_adapter'] = 'postgresql'
-        gitlab_rails['db_encoding'] = 'unicode'
         gitlab_rails['db_host'] = 'postgres'
         gitlab_rails['db_port'] = 5432
         gitlab_rails['db_database'] = '${POSTGRES_DB}'
         gitlab_rails['db_username'] = '${POSTGRES_USER}'
         gitlab_rails['db_password'] = '${POSTGRES_PASSWORD}'
         gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD}'
+        # This moves the internal Puma port away from the 8080 conflict
+        puma['port'] = 8082
+        gitlab_workhorse['auth_backend'] = "http://localhost:8082"
     ports:
       - "8081:80" # Changed from 8080 to 8081 to avoid conflicts with other services
       - "8443:443" 
