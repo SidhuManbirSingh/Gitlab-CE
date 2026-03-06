@@ -36,7 +36,7 @@ services:
         gitlab_rails['db_password'] = '${POSTGRES_PASSWORD}'
         gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD}'
     ports:
-      - "8081:80" # Chnaged from 8080 to 8081 to avoid conflicts with other services
+      - "8081:80" # Changed from 8080 to 8081 to avoid conflicts with other services
       - "8443:443" 
       - "2223:22" # Changed from 2222 to 2223 to avoid conflicts with other services
     volumes:
