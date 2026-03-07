@@ -15,7 +15,7 @@ services:
       - backend
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 10s
+      interval: 10scp
       timeout: 5s
       retries: 5
 
@@ -63,7 +63,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4g
+          memory: 8g
           cpus: '2.0'
 
   gitlab-runner:
@@ -80,8 +80,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
-          cpus: '0.5'
+          memory: 1G
+          cpus: '1.0'
 
 networks:
   frontend:
