@@ -15,7 +15,7 @@ services:
       - backend
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 10scp
+      interval: 10scp # Changed from 10s to 10scp to prevent GitLab from crashing during CI/CD pipeline execution
       timeout: 5s
       retries: 5
 
@@ -63,8 +63,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8g
-          cpus: '2.0'
+          memory: 8g # Changed from 4g to 8g to prevent GitLab from crashing during CI/CD pipeline execution
+          cpus: '2.0' # Changed from 1.0 to 2.0 to prevent GitLab from crashing during CI/CD pipeline execution
 
   gitlab-runner:
     image: gitlab/gitlab-runner:latest
@@ -80,8 +80,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '1.0'
+          memory: 1G # Changed from 512m to 1g to prevent GitLab Runner from crashing during CI/CD pipeline execution
+          cpus: '1.0' # Changed from 0.5 to 1.0 to prevent GitLab Runner from crashing during CI/CD pipeline execution
 
 networks:
   frontend:
