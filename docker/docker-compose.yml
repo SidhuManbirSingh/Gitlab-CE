@@ -14,11 +14,11 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
   gitlab:
     image: gitlab/gitlab-ce:latest
     container_name: gitlab-ce
@@ -26,20 +26,23 @@ services:
     hostname: ${GITLAB_HOSTNAME}
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://${GITLAB_HOSTNAME}:8081' # Match your host port
+        external_url 'http://localhost:8081'
         gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'unicode'
         gitlab_rails['db_host'] = 'postgres'
         gitlab_rails['db_port'] = 5432
-        gitlab_rails['db_database'] = '${POSTGRES_DB}'
-        gitlab_rails['db_username'] = '${POSTGRES_USER}'
-        gitlab_rails['db_password'] = '${POSTGRES_PASSWORD}'
-        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD}'
-        # This moves the internal Puma port away from the 8080 conflict
-        puma['port'] = 8082
-        gitlab_workhorse['auth_backend'] = "http://localhost:8082"
+        # Ensure these match your .env variable names exactly
+        gitlab_rails['db_database'] = "${POSTGRES_DB}"
+        gitlab_rails['db_username'] = "${POSTGRES_USER}"
+        gitlab_rails['db_password'] = "${POSTGRES_PASSWORD}"
+        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
+
+        puma['listen'] = '0.0.0.0'
+        puma['port'] = 8083
+        gitlab_workhorse['auth_backend'] = "http://localhost:8083"
     ports:
-      - "8081:80" # Changed from 8080 to 8081 to avoid conflicts with other services
-      - "8443:443" 
+      - "8081:8081" # Changed from 8081:80 to 8081:8081 due to external_url configuration
+      - "8443:443"
       - "2223:22" # Changed from 2222 to 2223 to avoid conflicts with other services
     volumes:
       - gitlab_config:/etc/gitlab
@@ -52,7 +55,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost/-/health" ]
       interval: 60s
       timeout: 10s
       retries: 10
@@ -62,7 +65,7 @@ services:
         limits:
           memory: 4g
           cpus: '2.0'
-    
+
   gitlab-runner:
     image: gitlab/gitlab-runner:latest
     container_name: gitlab-runner
@@ -79,7 +82,6 @@ services:
         limits:
           memory: 512m
           cpus: '0.5'
-  
 
 networks:
   frontend:
