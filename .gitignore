@@ -7,3 +7,9 @@ nginx/ssl/*.key
 
 # Ignore OS-specific files
 .DS_Store
+
+# Ignore the real secrets directory to prevent leaking passwords
+secrets/
+
+# Ignore the actual environment variables file
+.env
