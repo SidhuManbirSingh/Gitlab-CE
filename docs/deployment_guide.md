@@ -1,15 +1,80 @@
 # Deployment Guide: CI/CD Platform Infrastructure
 
-This document provides step-by-step instructions for deploying a fully functional, containerized CI/CD Platform stack (GitLab CE, PostgreSQL 16, and GitLab Runner) using Docker Compose.
+This document provides step-by-step instructions for deploying a fully functional, containerized CI/CD Platform stack (GitLab CE, PostgreSQL 16, and GitLab Runner) using *docker-compose*.
 
 ---
 
 ## 1. Prerequisites
 
-- **Host OS:** Linux environment (e.g., Ubuntu, KDE Plasma) with Docker Engine and Docker Compose installed.
-- **CPU:** ≥ 3 cores (GitLab requires 2 cores minimum; Runner requires 1 core).
-- **Memory:** ≥ 14 GB RAM on the host (8 GB allocated to GitLab, 1 GB to Runner — remaining headroom prevents host swapping).
-- **Network:** Ports `8081` (HTTP), `8443` (HTTPS), and `2223` (SSH) must be available on the host machine.
+*Note: This guide assumes you are deploying on a Linux environment (e.g., Ubuntu, KDE Plasma) with Docker Engine and Docker Compose installed. I have tested this guide on Linux KDE Plasma. I have mentioned the resources allocated by me on my machine.*
+
+### Machine Specifications
+
+> **Command Used:** `(base) sidhu@sidhu-kde:~$ lscpu`
+
+**Architecture:** x86_64  
+**CPU op-mode(s):** 32-bit, 64-bit  
+**Address sizes:** 48 bits physical, 48 bits virtual  
+**Byte Order:** Little Endian  
+
+**CPU(s):** 12  
+**On-line CPU(s) list:** 0-11  
+**Vendor ID:** AuthenticAMD  
+**Model Name:** AMD Ryzen 5 5500U with Radeon Graphics  
+**CPU Family:** 23  
+**Model:** 104  
+**Thread(s) per core:** 2  
+**Core(s) per socket:** 6  
+**Socket(s):** 1  
+**Stepping:** 1  
+**Frequency boost:** enabled  
+**CPU(s) scaling MHz:** 44%  
+**CPU max MHz:** 4056.0000  
+**CPU min MHz:** 400.0000  
+**BogoMIPS:** 4191.91  
+
+**Flags:**  
+fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca
+
+**Virtualization:** AMD-V  
+
+**Caches (sum of all):**  
+- L1d: 192 KiB (6 instances)  
+- L1i: 192 KiB (6 instances)  
+- L2: 3 MiB (6 instances)  
+- L3: 8 MiB (2 instances)  
+
+**NUMA Nodes:**  
+- NUMA node(s): 1  
+- NUMA node0 CPU(s): 0-11  
+
+**Vulnerabilities:**  
+- Gather data sampling: Not affected  
+- Ghostwrite: Not affected  
+- Indirect target selection: Not affected  
+- Itlb multihit: Not affected  
+- L1tf: Not affected  
+- Mds: Not affected  
+- Meltdown: Not affected  
+- Mmio stale data: Not affected  
+- Reg file data sampling: Not affected  
+- Retbleed: Mitigation; untrained return thunk; SMT enabled with STIBP protection  
+- Spec rstack overflow: Mitigation; Safe RET  
+- Spec store bypass: Mitigation; Speculative Store Bypass disabled via prctl  
+- Spectre v1: Mitigation; usercopy/swapgs barriers and __user pointer sanitization  
+- Spectre v2: Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected  
+- Srbds: Not affected  
+- Tsa: Not affected  
+- Tsx async abort: Not affected  
+- Vmscape: Mitigation; IBPB before exit to userspace
+
+**Host OS:** Linux environment (e.g., Ubuntu, KDE Plasma) with Docker Engine and Docker Compose installed.
+
+**CPU:** ≥ 3 cores (GitLab requires 2 cores minimum; Runner requires 1 core).
+
+**Memory:** ≥ 15 GB RAM on the host (8 GB allocated to GitLab, 1 GB to Runner and remaining headroom prevents host swapping).
+
+**Network:** Ports `8081` (HTTP), `8443` (HTTPS), and `2223` (SSH) must be available on the host machine.
 
 ---
 
@@ -241,3 +306,35 @@ This deployment implements strict network isolation to mimic production-grade se
 | **PostgreSQL** | `backend` (Internal) | Stores all GitLab metadata. Fully isolated from host access. |
 | **GitLab CE** | `frontend` & `backend` | The CI/CD brain. Accepts external traffic on `8081`, communicates with PostgreSQL over `backend`. |
 | **GitLab Runner** | `backend` (Internal) | The job executor. Spawns temporary pipeline containers inside the secure backend network. |
+
+---
+
+## 7. Level 2: Production Hardening Features
+
+This deployment implements advanced production-grade security and reliability features, addressing all Level 2 project requirements.
+
+### 1. Reverse Proxy (TLS Termination)
+We employ an Alpine-based `nginx` container acting as a reverse proxy for the CI/CD platform:
+- **Port Mapping**: The proxy is the **only** entry point exposed to the host machine, listening on standard ports `80` (HTTP) and `443` (HTTPS).
+- **Redirection**: All incoming HTTP traffic on port `80` is automatically redirected to `443`.
+- **Backend Routing**: Nginx terminates the SSL connection and proxies the unencrypted traffic internally over the `frontend` bridge network directly to the backend `gitlab-ce` container on port `8081`.
+
+*(This approach enables HTTPS protection while explicitly instructing GitLab's Omnibus internal webserver to disable its own costly automatic HTTPS generation).*
+
+### 2. Secrets Management
+Passwords and credentials are **not stored** as environment variables or hardcoded inside the project repository.
+- **Implementation**: The infrastructure uses the `docker secrets` engine.
+- **Workflow**: Passwords for PostgreSQL and the initial GitLab root account are stored in physical text files located in `docker/secrets/`. These files are mapped with strict `600` permissions (read/write only by the owner). 
+- **Injection**: Docker mounts these secret files into the containers' isolated memory (`/run/secrets/`), preventing them from ever touching the container disk, appearing in system logs, or leaking via `docker inspect`.
+- *(Note: A `secrets-example/` template directory is tracked in version control, while the real `secrets/` directory is `.gitignore`d).*
+
+### 3. Centralized Logging & Retention Restrictions
+Unrestricted container logging can lead to a disk-exhaustion crash on the host operating system. To mitigate this:
+- **Retention Strategy**: We explicitly declare the standard `json-file` logging driver for both the heavy `gitlab-ce` and `postgres` services inside `docker-compose.yml`.
+- **Size Caps**: The `max-size` parameter restricts individual log files to a maximum of `50m` (50 Megabytes).
+- **Rotation**: The `max-file` parameter enforces a ceiling of 5 archived files per container. If the maximum is reached, Docker will automatically purge the oldest 50MB log.
+
+### 4. Backup & Disaster Recovery
+A highly robust automation script, `scripts/backup.sh`, is provided to safely snapshot the CI/CD environment without corrupting the underlying Git repositories or tracking metadata.
+- **Application Tarball**: The script leverages GitLab's native `gitlab-backup create` internal utility to safely compress the core PSQL database, uploaded attachments, and active Git repositories into a centralized archive.
+- **Configuration Safely Extracted**: Since the native utility deliberately skips configuration and encryption keys, the script spins up a temporary (`--rm`) Alpine container. This container mounts the persistent `gitlab_config` volume, tars the critical `/etc/gitlab/gitlab.rb` and `gitlab-secrets.json` files, and extracts them to the host's `backups/` directory.
