@@ -8,7 +8,14 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -49,8 +56,8 @@ services:
         # Ensure these match your .env variable names exactly
         gitlab_rails['db_database'] = "${POSTGRES_DB}"
         gitlab_rails['db_username'] = "${POSTGRES_USER}"
-        gitlab_rails['db_password'] = "${POSTGRES_PASSWORD}"
-        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
+        gitlab_rails['db_password'] = File.read('/run/secrets/postgres_password').chomp
+        gitlab_rails['initial_root_password'] = File.read('/run/secrets/gitlab_root_password').chomp
         # Explicitly setting the port for Nginx to 8081
         nginx['listen_port'] = 8081
         # Explicitly setting the listen_https to false to disable HTTPS
@@ -61,6 +68,14 @@ services:
         gitlab_workhorse['auth_backend'] = "http://localhost:8083"
     ports:
       - "2223:22" # Changed from 2222 to 2223 to avoid conflicts with other services 
+    secrets:
+      - postgres_password
+      - gitlab_root_password
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
     volumes:
       - gitlab_config:/etc/gitlab
       - gitlab_logs:/var/log/gitlab
@@ -113,3 +128,10 @@ volumes:
   gitlab_logs:
   gitlab_data:
   runner_config:
+
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  gitlab_root_password:
+    file: ./secrets/gitlab_root_password.txt
