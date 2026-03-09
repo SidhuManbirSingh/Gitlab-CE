@@ -9,7 +9,10 @@ nginx/ssl/*.key
 .DS_Store
 
 # Ignore the real secrets directory to prevent leaking passwords
-secrets/
+docker/secrets/
 
 # Ignore the actual environment variables file
 .env
+
+# Ignore Kubernetes secrets
+k8s/base/secrets.yaml
