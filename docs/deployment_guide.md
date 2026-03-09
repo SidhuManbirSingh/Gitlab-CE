@@ -338,3 +338,25 @@ Unrestricted container logging can lead to a disk-exhaustion crash on the host o
 A highly robust automation script, `scripts/backup.sh`, is provided to safely snapshot the CI/CD environment without corrupting the underlying Git repositories or tracking metadata.
 - **Application Tarball**: The script leverages GitLab's native `gitlab-backup create` internal utility to safely compress the core PSQL database, uploaded attachments, and active Git repositories into a centralized archive.
 - **Configuration Safely Extracted**: Since the native utility deliberately skips configuration and encryption keys, the script spins up a temporary (`--rm`) Alpine container. This container mounts the persistent `gitlab_config` volume, tars the critical `/etc/gitlab/gitlab.rb` and `gitlab-secrets.json` files, and extracts them to the host's `backups/` directory.
+
+---
+
+## 8. Kubernetes Deployment Transition
+
+Transitioning this stack to Kubernetes provides highly resilient, scalable infrastructure needed to reliably execute containerized pipelines. The deployment has been migrated from `docker-compose` to consolidated Kubernetes manifests located in the `k8s/base/` directory.
+
+### Execution
+
+Ensure your local Kubernetes cluster (like Minikube or kind) is running, and then deploy the entire architecture at once:
+
+```bash
+kubectl apply -f k8s/base/
+```
+
+To watch the deployment come alive, run:
+
+```bash
+kubectl get pods -n gitlab -w
+```
+
+Once the GitLab pod reaches a `Running` state, you can use `kubectl exec` into the `gitlab-runner` pod to register the runner with the GitLab instance.
