@@ -70,3 +70,69 @@ Persistent storage volumes are used to ensure that critical data is not lost whe
 ## Section 6 — Scalability
 
 GitLab Runner is the easiest thing to scale and we can register multiple runners for parallel pipeline execution. PostgreSQL can be scaled with read replicas. GitLab CE itself would require shared storage (like NFS or S3) for true horizontal scaling.
+
+---
+
+## Section 7 — Kubernetes Architecture (Level 3)
+
+### Overview
+
+The entire stack has been migrated from Docker Compose to Kubernetes to provide self-healing, declarative infrastructure management. All manifests live in `k8s/base/` and are applied with a single `kubectl apply -f k8s/base/` command.
+
+### Namespace Isolation
+
+All resources are deployed into a dedicated `gitlab` namespace, isolating them from any other workloads running in the cluster. This follows the principle of least privilege and prevents accidental cross-contamination.
+
+```
+gitlab (namespace)
+├── Deployments:   gitlab, postgres, gitlab-runner
+├── Services:      gitlab-service (NodePort), postgres-service (ClusterIP)
+├── ConfigMaps:    gitlab-config
+├── Secrets:       gitlab-secrets
+└── PVCs:          gitlab-config-pvc, gitlab-logs-pvc, gitlab-data-pvc,
+                   postgres-data-pvc, runner-config-pvc
+```
+
+### Production Feature 1 — Health Probes
+
+All three Kubernetes probe types are configured on the GitLab deployment to guarantee continuous availability:
+
+| Probe | Path | Purpose |
+|---|---|---|
+| **startupProbe** | `/-/health` | Grants up to 10 minutes on first boot for DB migrations to complete before Kubernetes considers the pod failed. |
+| **livenessProbe** | `/-/health` | Automatically restarts the container if the Puma server becomes unresponsive. |
+| **readinessProbe** | `/-/readiness` | Removes the pod from the Service load balancer's Endpoints list if it is not ready to serve traffic, preventing bad requests from reaching a booting pod. |
+
+All probes use a `timeoutSeconds: 15` to accommodate the resource-constrained Minikube environment.
+
+### Production Feature 2 — Resource Limits
+
+Explicit CPU and memory `requests` and `limits` are defined on every pod to prevent noisy-neighbor resource exhaustion:
+
+| Component | Memory Request | Memory Limit | CPU Request | CPU Limit |
+|---|---|---|---|---|
+| **GitLab CE** | 4 Gi | 8 Gi | 1000m (1 core) | 3000m (3 cores) |
+| **PostgreSQL** | 256 Mi | 1 Gi | 250m | 1000m |
+| **GitLab Runner** | 256 Mi | 1 Gi | 200m | 1000m |
+
+### Credentials & Secrets Management
+
+All passwords and tokens are stored in a Kubernetes `Secret` object (`gitlab-secrets`) as base64-encoded strings. They are injected into pods as environment variables via `secretKeyRef`, ensuring they never appear in the manifest YAML or image layers.
+
+### Persistent Storage
+
+Data durability across pod restarts is guaranteed using `PersistentVolumeClaims` backed by Minikube's default `standard` StorageClass:
+
+| PVC | Mount Point | Capacity |
+|---|---|---|
+| `gitlab-config-pvc` | `/etc/gitlab` | 2 Gi |
+| `gitlab-logs-pvc` | `/var/log/gitlab` | 5 Gi |
+| `gitlab-data-pvc` | `/var/opt/gitlab` | 10 Gi |
+| `postgres-data-pvc` | `/var/lib/postgresql/data` | 5 Gi |
+| `runner-config-pvc` | `/etc/gitlab-runner` | 1 Gi |
+
+### Internal Networking
+
+Pods communicate over Kubernetes' internal DNS. The GitLab pod connects to PostgreSQL using the stable DNS name `postgres-service.gitlab.svc.cluster.local`, and the Runner connects to GitLab via `gitlab-service.gitlab.svc.cluster.local`. No inter-pod traffic leaves the cluster network.
+
+External access is exposed via a `NodePort` Service on `192.168.49.2:30080` (Minikube's IP).

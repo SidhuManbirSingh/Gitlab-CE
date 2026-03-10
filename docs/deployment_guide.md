@@ -341,22 +341,123 @@ A highly robust automation script, `scripts/backup.sh`, is provided to safely sn
 
 ---
 
-## 8. Kubernetes Deployment Transition
+## 8. Kubernetes Deployment (Level 3)
 
-Transitioning this stack to Kubernetes provides highly resilient, scalable infrastructure needed to reliably execute containerized pipelines. The deployment has been migrated from `docker-compose` to consolidated Kubernetes manifests located in the `k8s/base/` directory.
+Transitioning this stack to Kubernetes provides highly resilient, declarative, self-healing infrastructure. All manifests are located in `k8s/base/`.
 
-### Execution
+### Prerequisites
 
-Ensure your local Kubernetes cluster (like Minikube or kind) is running, and then deploy the entire architecture at once:
+- Minikube installed and running (`minikube start --memory 8192 --cpus 4`)
+- `kubectl` configured to point to your Minikube cluster (`kubectl config use-context minikube`)
+
+### Architecture
+
+All resources are isolated within a dedicated `gitlab` namespace:
+
+| Resource | Kind | Purpose |
+|---|---|---|
+| `namespace.yaml` | Namespace | Isolates all GitLab resources |
+| `secrets.yaml` | Secret | Stores base64-encoded DB password, root password, and runner token |
+| `configmap.yaml` | ConfigMap | Stores GitLab's Omnibus Ruby configuration |
+| `postgres.yaml` | Deployment + PVC + Service | PostgreSQL database backend |
+| `gitlab.yaml` | Deployment + 3x PVC + Service | GitLab CE application server |
+| `runner.yaml` | Deployment + PVC | CI/CD job executor |
+
+### 1. Prepare Secrets
+
+Before applying, base64-encode your credentials and update `k8s/base/secrets.yaml`:
+
+```bash
+echo -n 'your_db_password' | base64
+echo -n 'your_root_password' | base64
+```
+
+Update the `data` block in `secrets.yaml` with the output values.
+
+### 2. Deploy the Entire Stack
 
 ```bash
 kubectl apply -f k8s/base/
 ```
 
-To watch the deployment come alive, run:
+### 3. Monitor Startup
+
+GitLab performs hundreds of database migrations on first boot — allow **5–10 minutes**:
 
 ```bash
+# Watch pods come online
 kubectl get pods -n gitlab -w
+
+# Stream GitLab logs to monitor migration progress
+kubectl logs -f -l app=gitlab -n gitlab
 ```
 
-Once the GitLab pod reaches a `Running` state, you can use `kubectl exec` into the `gitlab-runner` pod to register the runner with the GitLab instance.
+The GitLab pod is ready when `READY` shows `1/1`.
+
+### 4. Access the UI
+
+Get the Minikube NodePort URL:
+
+```bash
+minikube service gitlab-service -n gitlab --url
+```
+
+Or access directly at `http://192.168.49.2:30080`.
+
+### 5. Register the GitLab Runner
+
+**Step 1:** Log in to the GitLab UI → **Admin Area → CI/CD → Runners** → click **New instance runner** → enable *Run untagged jobs* → click **Create**. Copy the generated **Runner Authentication Token**.
+
+**Step 2:** Register from inside the pod:
+
+```bash
+RUNNER_POD=$(kubectl get pods -n gitlab -l app=gitlab-runner -o jsonpath='{.items[0].metadata.name}')
+
+kubectl exec $RUNNER_POD -n gitlab -- gitlab-runner register \
+  --non-interactive \
+  --url "http://gitlab-service.gitlab.svc.cluster.local" \
+  --token "YOUR_RUNNER_TOKEN_HERE" \
+  --executor "docker" \
+  --kubernetes-image "alpine:latest"
+```
+
+**Step 3:** Save your token to `docker/secrets/gitlab_runner_token.txt` and add its base64 form to `k8s/base/secrets.yaml` under the `runner-token` key.
+
+### 6. Test a Pipeline
+
+Create a test project in GitLab, then add a `.gitlab-ci.yml` file at the repository root:
+
+```yaml
+# .gitlab-ci.yml — Basic pipeline smoke test
+test-job:
+  script:
+    - echo "Pipeline is working!"
+    - echo "Runner is executing on Kubernetes!"
+    - echo "Deployment = SUCCESS"
+```
+
+Push the file and navigate to **CI/CD → Pipelines** in the project. The job should pass with a green ✅ in about 30 seconds.
+
+---
+
+## 9. Level 3 Production Features
+
+### Feature 1 — Liveness & Readiness Probes
+
+All three Kubernetes probe types are configured on the GitLab Deployment (`k8s/base/gitlab.yaml`):
+
+| Probe | Endpoint | Behaviour |
+|---|---|---|
+| `startupProbe` | `/-/health` | Allows up to 10 min for first-boot DB migrations |
+| `livenessProbe` | `/-/health` | Restarts the pod automatically if Puma stops responding |
+| `readinessProbe` | `/-/readiness` | Prevents traffic reaching a pod that isn't fully booted |
+
+### Feature 2 — Resource Limits
+
+Every pod defines explicit `requests` and `limits` to prevent resource starvation:
+
+| Component | Memory Request / Limit | CPU Request / Limit |
+|---|---|---|
+| **GitLab CE** | 4 Gi / 8 Gi | 1000m / 3000m |
+| **PostgreSQL** | 256 Mi / 1 Gi | 250m / 1000m |
+| **GitLab Runner** | 256 Mi / 1 Gi | 200m / 1000m |
