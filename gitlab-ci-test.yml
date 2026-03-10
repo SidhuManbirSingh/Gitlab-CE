@@ -1,0 +1,22 @@
+# .gitlab-ci.yml — Level 3 Pipeline Smoke Test
+# Create a new project in GitLab, upload this file, and push.
+# Navigate to CI/CD → Pipelines to see it run green ✅
+
+stages:
+  - test
+  - info
+
+test-job:
+  stage: test
+  script:
+    - echo "✅ Pipeline is working!"
+    - echo "✅ GitLab Runner is executing on Kubernetes!"
+    - echo "✅ Deployment = SUCCESS"
+
+environment-info:
+  stage: info
+  script:
+    - echo "--- Runner Environment ---"
+    - uname -a
+    - echo "Runner hostname: $(hostname)"
+    - echo "--- Done ---"
