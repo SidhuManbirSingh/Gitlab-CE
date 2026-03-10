@@ -5,12 +5,17 @@ metadata:
   namespace: gitlab
 data:
   GITLAB_OMNIBUS_CONFIG: |
-    external_url 'http://localhost:30080'
+    external_url 'http://192.168.49.2:30080'
+    nginx['listen_port'] = 80
+    nginx['listen_https'] = false
     gitlab_rails['db_adapter'] = 'postgresql'
     gitlab_rails['db_encoding'] = 'unicode'
     gitlab_rails['db_host'] = 'postgres-service'
     gitlab_rails['db_port'] = 5432
     gitlab_rails['db_database'] = 'gitlabhq_production'
     gitlab_rails['db_username'] = 'gitlab'
+    gitlab_rails['db_password'] = ENV['POSTGRES_PASSWORD']
+    gitlab_rails['initial_root_password'] = ENV['GITLAB_ROOT_PASSWORD']
+    gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '192.168.0.0/16', '10.0.0.0/8']
     puma['worker_processes'] = 2
     sidekiq['max_concurrency'] = 5

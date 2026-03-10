@@ -69,6 +69,11 @@ spec:
         - name: gitlab
           image: gitlab/gitlab-ce:latest
           env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-secrets
+                  key: postgres-password
             - name: GITLAB_OMNIBUS_CONFIG
               valueFrom:
                 configMapKeyRef:
@@ -89,18 +94,27 @@ spec:
             limits:
               memory: "8Gi"
               cpu: "3000m"
+          startupProbe:
+            httpGet:
+              path: /-/health
+              port: 80
+            timeoutSeconds: 15
+            failureThreshold: 60   # 60 x 10s = 10 minutes for first boot
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /-/health
               port: 80
-            initialDelaySeconds: 180 # GitLab needs time to boot
+            timeoutSeconds: 15
             periodSeconds: 30
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /-/readiness
               port: 80
-            initialDelaySeconds: 180
+            timeoutSeconds: 15
             periodSeconds: 10
+            failureThreshold: 3
           volumeMounts:
             - name: gitlab-config-storage
               mountPath: /etc/gitlab
