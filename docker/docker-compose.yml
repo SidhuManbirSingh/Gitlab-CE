@@ -22,7 +22,7 @@ services:
       - backend
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 10scp # Changed from 10s to 10scp to prevent GitLab from crashing during CI/CD pipeline execution
+      interval: 10s # Changed from 10s to 10scp to prevent GitLab from crashing during CI/CD pipeline execution
       timeout: 5s
       retries: 5
 
