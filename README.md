@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CIS 395 - Level 3 CI/CD Platform Project
 
 Welcome to the comprehensive CI/CD Platform deployment project! This repository contains the completely containerized infrastructure required to run a production-grade GitLab instance, PostgreSQL database, and GitLab Runner.
@@ -27,3 +28,6 @@ This project has evolved through three distinct levels of maturity:
 ## Getting Started
 
 Please refer to the `docs/deployment_guide.md` file for step-by-step instructions on deploying this infrastructure to either Docker Compose or a Kubernetes cluster like Minikube.
+=======
+# Readme test from a differnt machine
+>>>>>>> 2e948806fe415ddcd358b0e3ca82714bd5ed2689
