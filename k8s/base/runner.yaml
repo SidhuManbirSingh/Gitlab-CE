@@ -1,49 +1,86 @@
+# -------------------------------
+# Persistent Volume Claim (PVC)
+# Stores GitLab Runner configuration
+# so runner registration and settings persist
+# -------------------------------
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: runner-config-pvc
   namespace: gitlab
 spec:
-  accessModes: [ReadWriteOnce]
+  accessModes: [ReadWriteOnce]  # Mounted by a single node
   resources:
     requests:
-      storage: 1Gi
+      storage: 1Gi  # Small size (only config files)
+
 ---
+# -------------------------------
+# Deployment Definition
+# Runs GitLab Runner inside Kubernetes
+# Responsible for executing CI/CD jobs
+# -------------------------------
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gitlab-runner
   namespace: gitlab
 spec:
-  replicas: 1
+  replicas: 1  # One runner instance (can scale later for parallel jobs)
+
   selector:
     matchLabels:
-      app: gitlab-runner
+      app: gitlab-runner  # Must match pod labels
+
   template:
     metadata:
       labels:
         app: gitlab-runner
+
     spec:
       containers:
         - name: gitlab-runner
-          image: gitlab/gitlab-runner:latest
+          image: gitlab/gitlab-runner:latest  # Official GitLab Runner image
+
+          # -------------------------------
+          # Resource Allocation
+          # Controls CPU & memory usage
+          # -------------------------------
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: "256Mi"  # Minimum guaranteed memory
+              cpu: "200m"      # 0.2 CPU
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
+              memory: "1Gi"    # Max memory
+              cpu: "1000m"     # 1 CPU
+
+          # -------------------------------
+          # Volume Mounts
+          # -------------------------------
           volumeMounts:
             - name: runner-config-storage
               mountPath: /etc/gitlab-runner
+              # Stores runner configuration (config.toml, registration)
+
             - name: docker-socket
               mountPath: /var/run/docker.sock
+              # Allows runner to communicate with host Docker daemon
+              # Enables Docker-in-Docker style builds (⚠️ security risk)
+
+      # -------------------------------
+      # Volumes Definition
+      # -------------------------------
       volumes:
         - name: runner-config-storage
           persistentVolumeClaim:
             claimName: runner-config-pvc
+            # Links PVC to store runner config
+
         - name: docker-socket
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+            # Mounts host Docker socket into container
+            # Required for building/running Docker containers in CI jobs

@@ -1,99 +1,111 @@
+# PVCs -- used to store data persistently across pod restarts. 
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: gitlab-config-pvc
+  name: gitlab-config-pvc # Stores config files for GitLab CE, such as gitlab.rb, which is generated from the ConfigMap. 
   namespace: gitlab
 spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 2Gi
+      storage: 2Gi # 2 gbs for now 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: gitlab-logs-pvc
+  name: gitlab-logs-pvc # Logs - helps in debugging and monitoring GitLab CE. Logs can grow over time, so we allocate more storage for logs than config.
   namespace: gitlab
 spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 5Gi
+      storage: 5Gi # 5 gbs for now, but can be increased based on log volume and retention needs.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: gitlab-data-pvc
+  name: gitlab-data-pvc # Data - stores all the data for GitLab CE, including repositories, issues, and other user-generated content.
   namespace: gitlab
 spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 10Gi
+      storage: 10Gi 
 ---
+
+
+# Service Defination - Exposes GitLab CE to the outside world. 
+# We gonna use Node Port for accessing GitLab CE Web UI and SSH from outside the cluster. 
+# In production, consider using LoadBalancer or Ingress for better performance and security.
+
 apiVersion: v1
 kind: Service
 metadata:
   name: gitlab-service
   namespace: gitlab
 spec:
-  type: NodePort
+  type: NodePort # Exposes service via Node IP + port 
   selector:
-    app: gitlab
+    app: gitlab # Target pod with label app = gitlab, which is defined in the deployment below
   ports:
     - name: http
-      port: 80
-      targetPort: 80
-      nodePort: 30080
+      port: 80 # Internal cluster port for GitLab Web UI
+      targetPort: 80 # Port on the GitLab container, matches with containerPort defined in the deployment below
+      nodePort: 30080 # Access GitLab Web UI via http://<NodeIP>:30080  -- NodeIP = localhost or IP of any node in the cluster
     - name: ssh
       port: 22
       targetPort: 22
-      nodePort: 30022
+      nodePort: 30022 # Access GitLab via SSH at http://<NodeIP>:30022  -- NodeIP = localhost or IP of any node in the cluster
 ---
+
+# Deployment Defination -- Manages GitLab Pod Lifecycle, including scaling, updates, and self-healing.
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gitlab
   namespace: gitlab
 spec:
-  replicas: 1
-  selector:
+  replicas: 1 # GitLab CE is resource intensive, so we start with 1 replica. Scale up if needed. If Scaling Up, consider using GitLab EE for better performance and features.
+  selector: # Selectors are used to identify the pods that belong to this deployment
     matchLabels:
       app: gitlab
-  template:
+  template: # The pod template defines the pod that will be created by this deployment and Selector must match the labels defined in the pod template
     metadata:
       labels:
         app: gitlab
     spec:
-      containers:
+      containers: # Define the container that will run GitLab CE, similar to running GitLab CE in a Docker Compose file, but with Kubernetes-specific configurations for environment variables, ports, resources, and probes.
         - name: gitlab
-          image: gitlab/gitlab-ce:latest
-          env:
+          image: gitlab/gitlab-ce:latest # Community Edition Image 
+          env: # ENVIRONMENT VARIABLES 
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: gitlab-secrets
-                  key: postgres-password
+                  name: gitlab-secrets # Matches with the name of the secret in meta data defined in secrets.yaml
+                  key: postgres-password # Matches with the key defined in data section of secrets.yaml
             - name: GITLAB_OMNIBUS_CONFIG
               valueFrom:
                 configMapKeyRef:
                   name: gitlab-config
-                  key: GITLAB_OMNIBUS_CONFIG
+                  key: GITLAB_OMNIBUS_CONFIG # Configuration for GitLab Omnibus using ConfigMap, matches with the name of the configmap in meta data defined in configmap.yaml and key defined in data section of configmap.yaml
             - name: GITLAB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: gitlab-secrets
                   key: gitlab-root-password
+          # CONTAINER PORTS, RESOURCES, AND PROBES
           ports:
-            - containerPort: 80
-            - containerPort: 22
-          resources:
+            - containerPort: 80 # HTTP
+            - containerPort: 22 # SSH
+          resources: # RESOURCE MANAGEMENT  
             requests:
               memory: "4Gi"
               cpu: "1000m"
             limits:
               memory: "8Gi"
               cpu: "3000m"
+          # Health Checks - Probes 
           startupProbe:
             httpGet:
               path: /-/health
@@ -107,22 +119,22 @@ spec:
               port: 80
             timeoutSeconds: 15
             periodSeconds: 30
-            failureThreshold: 3
+            failureThreshold: 3 # If the liveness probe fails 3 times, Kubernetes will restart the container, which helps in self-healing if GitLab CE becomes unresponsive or encounters issues.
           readinessProbe:
             httpGet:
               path: /-/readiness
               port: 80
             timeoutSeconds: 15
             periodSeconds: 10
-            failureThreshold: 3
-          volumeMounts:
+            failureThreshold: 3 # If the readiness probe fails 3 times, Kubernetes will stop sending traffic to the pod until it becomes ready again, which helps in ensuring that only healthy pods receive traffic.
+          volumeMounts: # volume Mount 
             - name: gitlab-config-storage
               mountPath: /etc/gitlab
             - name: gitlab-logs-storage
               mountPath: /var/log/gitlab
             - name: gitlab-data-storage
               mountPath: /var/opt/gitlab
-      volumes:
+      volumes: # Volume Definations  
         - name: gitlab-config-storage
           persistentVolumeClaim:
             claimName: gitlab-config-pvc

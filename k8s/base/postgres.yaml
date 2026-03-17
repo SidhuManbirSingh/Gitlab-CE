@@ -1,3 +1,9 @@
+# -------------------------------
+# Persistent Volume Claim (PVC)
+# Stores PostgreSQL database data persistently
+# so data is NOT lost if the pod restarts
+# -------------------------------
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -5,11 +11,18 @@ metadata:
   namespace: gitlab
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteOnce  # Mounted by only one node at a time (standard for DBs) To avoid data corruption, we use ReadWriteOnce access mode, which allows only one pod to write to the volume at a time. This is suitable for PostgreSQL, which is not designed for concurrent writes from multiple instances without clustering.
   resources:
     requests:
-      storage: 5Gi
+      storage: 5Gi  # Storage allocated for database files
+
 ---
+# -------------------------------
+# Service Definition
+# Enables internal communication within the cluster
+# GitLab will connect to PostgreSQL using this service
+# -------------------------------
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -17,43 +30,71 @@ metadata:
   namespace: gitlab
 spec:
   selector:
-    app: postgres
+    app: postgres  # Routes traffic to pods with this label
   ports:
-    - port: 5432
-      targetPort: 5432
-  type: ClusterIP
+    - port: 5432        # Service port (used inside cluster)
+      targetPort: 5432  # PostgreSQL container port
+  type: ClusterIP       # Internal-only access (secure, not exposed externally)
+
 ---
+# -------------------------------
+# Deployment Definition
+# Runs PostgreSQL database container
+# -------------------------------
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
   namespace: gitlab
 spec:
-  replicas: 1
+  replicas: 1  # Only 1 instance (PostgreSQL is stateful; scaling needs clustering)
+  
   selector:
     matchLabels:
-      app: postgres
+      app: postgres  # Must match pod labels
+
   template:
     metadata:
       labels:
         app: postgres
+
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: postgres:16-alpine  # Lightweight official PostgreSQL image
+
+          # -------------------------------
+          # Environment Variables
+          # Used to initialize the database
+          # -------------------------------
           env:
             - name: POSTGRES_DB
-              value: gitlabhq_production
+              value: gitlabhq_production  # Default database for GitLab
+
             - name: POSTGRES_USER
-              value: gitlab
+              value: gitlab  # Database user
+
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: gitlab-secrets
                   key: postgres-password
+                  # Securely pulls DB password from Kubernetes Secret
+
+          # -------------------------------
+          # Volume Mount
+          # Mounts persistent storage into container
+          # -------------------------------
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+              # Default PostgreSQL data directory
+
+      # -------------------------------
+      # Volume Definition
+      # Links PVC to the pod
+      # -------------------------------
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:
