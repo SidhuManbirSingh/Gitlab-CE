@@ -461,3 +461,291 @@ Every pod defines explicit `requests` and `limits` to prevent resource starvatio
 | **GitLab CE** | 4 Gi / 8 Gi | 1000m / 3000m |
 | **PostgreSQL** | 256 Mi / 1 Gi | 250m / 1000m |
 | **GitLab Runner** | 256 Mi / 1 Gi | 200m / 1000m |
+
+
+# 🚀 GitLab on Kubernetes – Deployment Guide
+
+## 📌 Overview
+
+This guide outlines the complete step-by-step process to set up a local Kubernetes cluster using Minikube, install required tools, and deploy a full GitLab environment including PostgreSQL and GitLab Runner.
+
+---
+
+## 🧰 Prerequisites
+
+Ensure the following are installed on your system:
+
+* Docker Desktop (with WSL integration enabled)
+* WSL (Ubuntu 24.04 recommended)
+* Internet connection
+
+---
+
+## ⚙️ Step 1: Install Required Dependencies
+
+Update system packages and install required tools:
+
+```bash
+sudo apt update
+sudo apt install -y curl apt-transport-https ca-certificates gnupg
+```
+
+---
+
+## ☸️ Step 2: Install kubectl (Kubernetes CLI)
+
+Add Kubernetes repository and install kubectl:
+
+```bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | \
+sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+```
+
+```bash
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] \
+https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | \
+sudo tee /etc/apt/sources.list.d/kubernetes.list
+```
+
+```bash
+sudo apt update
+sudo apt install -y kubectl
+```
+
+Verify installation:
+
+```bash
+kubectl version --client
+```
+
+---
+
+## 🐳 Step 3: Install Minikube
+
+Download and install Minikube:
+
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+```
+
+```bash
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+```
+
+Verify installation:
+
+```bash
+minikube version
+```
+
+---
+
+## 🔐 Step 4: Fix Docker Permissions
+
+Allow current user to access Docker:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Verify Docker access:
+
+```bash
+docker ps
+```
+
+---
+
+## 🚀 Step 5: Start Kubernetes Cluster
+
+Start Minikube using Docker driver:
+
+```bash
+minikube start --driver=docker --memory=8192 --cpus=4
+```
+
+Verify cluster:
+
+```bash
+kubectl get nodes
+```
+
+Expected output:
+
+```
+minikube   Ready
+```
+
+---
+
+## 📂 Step 6: Prepare Project Files
+
+Organize Kubernetes YAML files in a directory:
+
+```
+gitlab-k8s/
+├── gitlab-deployment.yaml
+├── postgres.yaml
+├── runner.yaml
+├── configmap.yaml
+├── secrets.yaml
+```
+
+---
+
+## 🔐 Step 7: Create Kubernetes Secrets
+
+Create `secrets.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-secrets
+  namespace: gitlab
+type: Opaque
+data:
+  postgres-password: cGFzc3dvcmQ=
+  gitlab-root-password: YWRtaW4xMjM=
+```
+
+Apply secret:
+
+```bash
+kubectl apply -f secrets.yaml
+```
+
+---
+
+## 🧱 Step 8: Create Namespace
+
+```bash
+kubectl create namespace gitlab
+```
+
+---
+
+## ⚡ Step 9: Deploy All Resources
+
+Apply all Kubernetes configurations:
+
+```bash
+kubectl apply -f .
+```
+
+---
+
+## 🔍 Step 10: Verify Deployment
+
+Check pods:
+
+```bash
+kubectl get pods -n gitlab
+```
+
+Wait until all pods show:
+
+```
+Running
+```
+
+---
+
+## 🌐 Step 11: Access GitLab
+
+Get Minikube IP:
+
+```bash
+minikube ip
+```
+
+Open in browser:
+
+```
+http://<MINIKUBE-IP>:30080
+```
+
+---
+
+## 🔑 Step 12: Login
+
+* Username: `root`
+* Password: (from Kubernetes Secret)
+
+---
+
+## 🛠 Step 13: Configure GitLab Runner
+
+Access runner container:
+
+```bash
+kubectl exec -it deployment/gitlab-runner -n gitlab -- bash
+```
+
+Register runner:
+
+```bash
+gitlab-runner register
+```
+
+Provide:
+
+* GitLab URL: `http://gitlab-service`
+* Registration token (from GitLab UI)
+* Executor: `shell` or `docker`
+
+---
+
+## 🧪 Step 14: Test CI/CD Pipeline
+
+Create `.gitlab-ci.yml` in a repository:
+
+```yaml
+stages:
+  - test
+
+test-job:
+  stage: test
+  script:
+    - echo "GitLab CI is working!"
+```
+
+Push code to trigger pipeline.
+
+---
+
+## ⚠️ Troubleshooting
+
+### Pods not starting
+
+```bash
+kubectl describe pod <pod-name> -n gitlab
+```
+
+### View logs
+
+```bash
+kubectl logs <pod-name> -n gitlab
+```
+
+### Restart cluster
+
+```bash
+minikube stop
+minikube start
+```
+
+---
+
+## ✅ Conclusion
+
+You have successfully deployed:
+
+* GitLab (self-hosted)
+* PostgreSQL database
+* GitLab Runner
+* Persistent storage
+* CI/CD pipeline capability
+
+This setup demonstrates a complete DevOps workflow using Kubernetes.
