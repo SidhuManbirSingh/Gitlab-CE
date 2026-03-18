@@ -1,3 +1,9 @@
+# -------------------------------
+# ConfigMap for GitLab Configuration
+# Stores GitLab Omnibus settings
+# Keeps configuration separate from container image
+# -------------------------------
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
