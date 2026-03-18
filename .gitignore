@@ -16,3 +16,7 @@ docker/secrets/
 
 # Ignore Kubernetes secrets
 k8s/base/secrets.yaml
+
+# Some Binary Files Added to the Repo for convenience
+k8s/base/minikube-linux-amd64
+k8s/base/kubectl
