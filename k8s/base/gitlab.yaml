@@ -44,18 +44,53 @@ metadata:
   name: gitlab-service
   namespace: gitlab
 spec:
-  type: NodePort # Exposes service via Node IP + port 
+  type: ClusterIP # Internal cluster service for GitLab Web UI
   selector:
-    app: gitlab # Target pod with label app = gitlab, which is defined in the deployment below
+    app: gitlab
   ports:
     - name: http
-      port: 80 # Internal cluster port for GitLab Web UI
-      targetPort: 80 # Port on the GitLab container, matches with containerPort defined in the deployment below
-      nodePort: 30080 # Access GitLab Web UI via http://<NodeIP>:30080  -- NodeIP = localhost or IP of any node in the cluster
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-ssh-service
+  namespace: gitlab
+spec:
+  type: NodePort # Exposes SSH via Node IP + port
+  selector:
+    app: gitlab
+  ports:
     - name: ssh
       port: 22
       targetPort: 22
-      nodePort: 30022 # Access GitLab via SSH at http://<NodeIP>:30022  -- NodeIP = localhost or IP of any node in the cluster
+      nodePort: 30022
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitlab-ingress
+  namespace: gitlab
+  annotations:
+    cert-manager.io/cluster-issuer: "minikube-issuer"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+      - gitlab.local
+      secretName: gitlab-tls # Will use fake ingress cert until cert-manager gives a real one
+  rules:
+    - host: gitlab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gitlab-service
+                port:
+                  number: 80
 ---
 
 # Deployment Defination -- Manages GitLab Pod Lifecycle, including scaling, updates, and self-healing.
