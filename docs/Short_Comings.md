@@ -4,12 +4,9 @@
   For production, backups should go off-machine (e.g. S3, NFS, or rsync to a remote).
   Kept in-directory for submission/demo purposes only.
 
-• **NodePort Exposure** — GitLab is exposed via NodePort (port 30080) which is a
-  dev/minikube pattern only. Production requires Ingress + cert-manager for proper
-  HTTPS termination. This is the next planned step.
+• ~~**NodePort Exposure**~~ [RESOLVED] — GitLab is now securely exposed via an **NGINX Ingress Controller**, removing the bare NodePort `30080` dependency.
 
-• **No HTTPS / TLS** — Currently running HTTP only. Need to enable CA certificates and
-  configure HTTPS via Ingress + cert-manager or self-signed certs.
+• ~~**No HTTPS / TLS**~~ [RESOLVED] — Traffic is now fully encrypted via HTTPS using **cert-manager** and a Self-Signed `ClusterIssuer`, mirroring production TLS termination.
 
 • **No monitoring stack** — No Prometheus/Grafana for metrics and alerting.
   Grafana would be the ideal node to add for dashboards and alerting rules.
@@ -20,7 +17,7 @@
 
 # FUTURE IMPROVEMENTS (Planned)
 
-• Ingress controller + cert-manager for HTTPS (replaces NodePort)
+• ~~Ingress controller + cert-manager for HTTPS (replaces NodePort)~~ [IMPLEMENTED]
 • Prometheus + Grafana for metrics, monitoring, and alerting
 • Kibana / ELK stack for centralized log aggregation
 • StatefulSet for Postgres instead of Deployment
