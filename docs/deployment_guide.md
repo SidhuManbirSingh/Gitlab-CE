@@ -360,7 +360,9 @@ All resources are isolated within a dedicated `gitlab` namespace:
 | `secrets.yaml` | Secret | Stores base64-encoded DB password, root password, and runner token |
 | `configmap.yaml` | ConfigMap | Stores GitLab's Omnibus Ruby configuration |
 | `postgres.yaml` | Deployment + PVC + Service | PostgreSQL database backend |
-| `gitlab.yaml` | Deployment + 3x PVC + Service | GitLab CE application server |
+| `cert-manager-issuer.yaml` | ClusterIssuer | Self-Signed Certificate Authority for local HTTPS |
+| `rbac.yaml` | ClusterRole + Binding | Fixes permissions for internal Prometheus monitoring |
+| `gitlab.yaml` | Deployment + PVCs + Service + Ingress | GitLab CE application server and HTTPS routing |
 | `runner.yaml` | Deployment + PVC | CI/CD job executor |
 
 ### 1. Prepare Secrets
@@ -374,13 +376,29 @@ echo -n 'your_root_password' | base64
 
 Update the `data` block in `secrets.yaml` with the output values.
 
-### 2. Deploy the Entire Stack
+### 2. Deploy Ingress and Cert-Manager
+
+Before deploying GitLab, enable the Ingress controller and install cert-manager for HTTPS:
 
 ```bash
+minikube addons enable ingress
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+# Wait ~30s for the webhook pod to begin running
+```
+
+### 3. Deploy the Entire Stack
+
+Apply all configurations, PVCs, services, and the TLS constraints:
+
+```bash
+# Bypass initial webhook timeout bugs by deleting the stale admission configuration
+kubectl delete ValidatingWebhookConfiguration ingress-nginx-admission
+
+# Apply your custom configurations
 kubectl apply -f k8s/base/
 ```
 
-### 3. Monitor Startup
+### 4. Monitor Startup
 
 GitLab performs hundreds of database migrations on first boot — allow **5–10 minutes**:
 
@@ -394,17 +412,25 @@ kubectl logs -f -l app=gitlab -n gitlab
 
 The GitLab pod is ready when `READY` shows `1/1`.
 
-### 4. Access the UI
+### 5. Access the UI via HTTPS
 
-Get the Minikube NodePort URL:
+Because we use an Ingress Controller, external traffic must be strictly routed via its hostname.
 
+**1. Update your Windows `hosts` file (`C:\Windows\System32\drivers\etc\hosts`):**
+Add the following line to resolve to local loopback:
+`127.0.0.1  gitlab.local`
+
+**2. Open a separate tunnel terminal:**
+Because Windows isolates Minikube's subnets, bridge the network by running:
 ```bash
-minikube service gitlab-service -n gitlab --url
+wsl minikube tunnel
 ```
+*(Leave this terminal window running. It will prompt for your WSL password to bind to privileged ports 80 and 443).*
 
-Or access directly at `http://192.168.49.2:30080`.
+**3. Open browser:**
+Navigate securely to `https://gitlab.local`. (You can safely proceed past the "Not Secure" self-signed certificate warning to view the login screen).
 
-### 5. Register the GitLab Runner
+### 6. Register the GitLab Runner
 
 **Step 1:** Log in to the GitLab UI → **Admin Area → CI/CD → Runners** → click **New instance runner** → enable *Run untagged jobs* → click **Create**. Copy the generated **Runner Authentication Token**.
 
@@ -423,7 +449,7 @@ kubectl exec $RUNNER_POD -n gitlab -- gitlab-runner register \
 
 **Step 3:** Save your token to `docker/secrets/gitlab_runner_token.txt` and add its base64 form to `k8s/base/secrets.yaml` under the `runner-token` key.
 
-### 6. Test a Pipeline
+### 7. Test a Pipeline
 
 Create a test project in GitLab, then add a `.gitlab-ci.yml` file at the repository root:
 
@@ -652,18 +678,19 @@ Running
 
 ---
 
-## 🌐 Step 11: Access GitLab
+## 🌐 Step 11: Access GitLab over HTTPS
 
-Get Minikube IP:
-
+1. Open your host machine `hosts` file (`C:\Windows\System32\drivers\etc\hosts`) and route the domain to your local loopback:
+   `127.0.0.1  gitlab.local`
+   
+2. Start the Minikube network bridging tunnel in a separate window:
 ```bash
-minikube ip
+wsl minikube tunnel
 ```
 
-Open in browser:
-
+3. Open your browser to the secure route:
 ```
-http://<MINIKUBE-IP>:30080
+https://gitlab.local
 ```
 
 ---
