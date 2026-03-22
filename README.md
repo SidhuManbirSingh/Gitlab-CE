@@ -76,10 +76,10 @@ Project/
                      ┌──────────────┐
                      │   Browser    │
                      └──────┬───────┘
-                            │ HTTP :30080
+                            │ HTTPS :443
                      ┌──────▼───────┐
-                     │   Nginx /    │
-                     │   NodePort   │
+                     │    NGINX     │
+                     │   Ingress    │
                      └──────┬───────┘
                             │
                 ┌───────────▼───────────┐
@@ -95,7 +95,7 @@ Project/
 
 - **PostgreSQL** is internal-only (`ClusterIP`) — never exposed outside the cluster
 - **GitLab Runner** connects back to GitLab over internal service DNS
-- **Nginx** (Docker Compose) or **NodePort** (Kubernetes) handles external access
+- **Nginx** (Docker Compose) or **HTTPS Ingress Controller** (Kubernetes) handles secure external access
 
 ---
 
@@ -146,7 +146,7 @@ Mentioned inside of the Short_Comings.md file.
 
 **Key items:**
 
-- **NodePort** → plan to migrate to Ingress + Cert-Manager for HTTPS
-- **No monitoring** → Prometheus + Grafana planned
+- ~~**NodePort**~~ → Successfully migrated to secure **Ingress + Cert-Manager for HTTPS**!
+- **No monitoring** → Prometheus + Grafana planned (RBAC visibility patched)
 - **No centralized logging** → ELK/Kibana stack planned
 - **Local backups** → production would use S3 or remote storage
