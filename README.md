@@ -21,7 +21,7 @@ The stack is deployed in two layers:
 
 ## Project Directory
 
-```
+```text
 Project/
 │
 ├── docker/                          # Docker Compose deployment
@@ -37,10 +37,14 @@ Project/
 │   └── base/                        # Base manifests
 │       ├── namespace.yaml           # 'gitlab' namespace definition
 │       ├── secrets.yaml             # K8s secrets (gitignored)
-│       ├── configmap.yaml           # GitLab Omnibus config (DB, URL, ports)
+│       ├── configmap.yaml           # GitLab config (DB, URL, ports)
+│       ├── cert-manager-issuer.yaml # ClusterIssuer for local HTTPS
+│       ├── rbac.yaml                # View node permissions for Prometheus
 │       ├── postgres.yaml            # Postgres Deployment + Service + PVC
-│       ├── gitlab.yaml              # GitLab Deployment + Service + PVCs + Probes
-│       └── runner.yaml              # Runner Deployment + PVC + Docker socket mount
+│       ├── gitlab.yaml              # GitLab Deployment + Probes
+│       ├── runner.yaml              # Runner Deployment + Docker socket mount
+│       ├── kubectl                  # Helper binary for execution
+│       └── minikube-linux-amd64     # Minikube binary helper
 │
 ├── nginx/                           # Reverse proxy configuration
 │   ├── nginx.conf                   # Nginx config (frontend proxy for GitLab)
@@ -52,20 +56,24 @@ Project/
 │   └── backups/                     # Backup output directory
 │
 ├── docs/                            # Project documentation
-│   ├── architecture.md              # Architecture overview with component diagrams
-│   ├── deployment_guide.md          # Full deployment walkthrough (Compose + K8s)
-│   ├── troubleshooting.md           # Documented issues and resolutions
-│   ├── architecture-diagram.jpeg    # Architecture diagram
+│   ├── architecture.md              # Architecture overview
+│   ├── deployment_guide.md          # Full deployment walkthrough
+│   ├── troubleshooting.md           # Issues and resolutions
+│   ├── Short_Comings.md             # Known limitations and improvements
+│   ├── working-towards-HTTPS.md     # SSL/TLS migration notes
+│   ├── architecture-diagram.jpeg    # High-level overview
+│   ├── architecture-overall.png     # Setup diagram
+│   ├── https-traffic.png            # HTTPS traffic flow diagram
+│   ├── k8s-architecture.png         # K8s components diagram
 │   └── network-topology-diagram.jpeg# Network topology diagram
 │
 ├── img/                             # Screenshots and evidence
 │   ├── Runner-Online.png            # Runner registration proof
 │   └── runner-k8s.png               # Runner running on Kubernetes
 │
-├── .gitignore                       # Ignores secrets, .env, SSL keys, K8s secrets
-├── Shortcomings.txt                 # Known limitations and future improvements
-├── gitlab-ci-test.yml               # Sample CI pipeline (smoke test)
-└── project.pdf                      # Project specification / requirements
+├── .gitignore                       # Ignores secrets, .env, SSL keys
+├── gitlab-ci-test.yml               # Sample CI pipeline
+└── project.pdf                      # Project specification
 ```
 
 ---
