@@ -1,0 +1,20 @@
+---
+replicas: 1
+
+elasticsearchHosts: "http://elasticsearch-master:9200"
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "2Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+# Ensure Kibana does not expect TLS or credentials
+elasticsearchServiceAccountToken: "dummy"
+
+kibanaConfig:
+  kibana.yml: |
+    server.host: "0.0.0.0"
+    elasticsearch.hosts: [ "http://elasticsearch-master:9200" ]
