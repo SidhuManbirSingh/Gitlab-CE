@@ -34,17 +34,21 @@ Project/
 │       └── gitlab_root_password.txt
 │
 ├── k8s/                             # Kubernetes deployment
-│   └── base/                        # Base manifests
-│       ├── namespace.yaml           # 'gitlab' namespace definition
-│       ├── secrets.yaml             # K8s secrets (gitignored)
-│       ├── configmap.yaml           # GitLab config (DB, URL, ports)
-│       ├── cert-manager-issuer.yaml # ClusterIssuer for local HTTPS
-│       ├── rbac.yaml                # View node permissions for Prometheus
-│       ├── postgres.yaml            # Postgres Deployment + Service + PVC
-│       ├── gitlab.yaml              # GitLab Deployment + Probes
-│       ├── runner.yaml              # Runner Deployment + Docker socket mount
-│       ├── kubectl                  # Helper binary for execution
-│       └── minikube-linux-amd64     # Minikube binary helper
+│   ├── base/                        # Base manifests
+│   │   ├── namespace.yaml           # 'gitlab' namespace definition
+│   │   ├── secrets.yaml             # K8s secrets (gitignored)
+│   │   ├── configmap.yaml           # GitLab config (DB, URL, ports)
+│   │   ├── cert-manager-issuer.yaml # ClusterIssuer for local HTTPS
+│   │   ├── rbac.yaml                # View node permissions for Prometheus
+│   │   ├── postgres.yaml            # Postgres Deployment + Service + PVC
+│   │   ├── gitlab.yaml              # GitLab Deployment + Probes
+│   │   ├── runner.yaml              # Runner Deployment + Docker socket mount
+│   │   ├── kubectl                  # Helper binary for execution
+│   │   └── minikube-linux-amd64     # Minikube binary helper
+│   └── logging/                     # EFK Logging Stack config
+│       ├── es-values.yaml           # Elasticsearch custom Helm values
+│       ├── kibana-values.yaml       # Kibana custom Helm values
+│       └── fluent-bit-values.yaml   # Fluent Bit daemonset config
 │
 ├── nginx/                           # Reverse proxy configuration
 │   ├── nginx.conf                   # Nginx config (frontend proxy for GitLab)
@@ -53,6 +57,7 @@ Project/
 ├── scripts/                         # Operational scripts
 │   ├── init.sh                      # Initialises directories, sets permissions
 │   ├── backup.sh                    # Backs up GitLab data + config
+│   ├── deploy-k8s.sh                # Fail-safe unified port-forwarding script
 │   └── backups/                     # Backup output directory
 │
 ├── docs/                            # Project documentation
@@ -61,6 +66,8 @@ Project/
 │   ├── troubleshooting.md           # Issues and resolutions
 │   ├── Short_Comings.md             # Known limitations and improvements
 │   ├── working-towards-HTTPS.md     # SSL/TLS migration notes
+│   ├── Implementing-Data-Scrapping-and-Visualization.md # Prometheus & Grafana docs
+│   ├── Implementing-Logging.md      # EFK Stack documentation
 │   ├── architecture-diagram.jpeg    # High-level overview
 │   ├── architecture-overall.png     # Setup diagram
 │   ├── https-traffic.png            # HTTPS traffic flow diagram
@@ -136,6 +143,8 @@ Project/
 | [deployment_guide.md](docs/deployment_guide.md) | Step-by-step deployment for both Docker Compose and Kubernetes |
 | [troubleshooting.md](docs/troubleshooting.md) | Real issues encountered during setup and their resolutions |
 | [Short_Comings.md](docs/Short_Comings.md) | Honest assessment of current limitations and planned improvements |
+| [Implementing-Data-Scrapping-and-Visualization.md](docs/Implementing-Data-Scrapping-and-Visualization.md) | Deep-dive into Prometheus scraping and Grafana dashboard integration |
+| [Implementing-Logging.md](docs/Implementing-Logging.md) | Architectural details on debugging and deploying the customized EFK stack |
 
 ---
 
@@ -155,6 +164,6 @@ Mentioned inside of the Short_Comings.md file.
 **Key items:**
 
 - ~~**NodePort**~~ → Successfully migrated to secure **Ingress + Cert-Manager for HTTPS**!
-- **No monitoring** → Prometheus + Grafana planned (RBAC visibility patched)
-- **No centralized logging** → ELK/Kibana stack planned
+- ~~**No monitoring**~~ → Successfully integrated **Prometheus (Scraper) & Grafana (Dashboard)**!
+- ~~**No centralized logging**~~ → Successfully deployed **EFK Stack (Elasticsearch, Fluent Bit, Kibana)**!
 - **Local backups** → production would use S3 or remote storage
