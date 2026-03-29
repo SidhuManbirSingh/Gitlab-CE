@@ -4,7 +4,7 @@ This document summarizes the technical challenges faced, the resolutions impleme
 
 ---
 
-## 🛑 Problems Faced and How We Resolved Them
+## Problems Faced and How We Resolved Them
 
 ### 1. WSL Docker and Minikube Resource Crashes
 *   **Problem**: Minikube repeatedly stopped and crashed unexpectedly, returning `connection refused` errors when communicating with the Kubernetes API Server. This happened because Docker within WSL hit a `systemd/cgroup` allocation bug while trying to schedule the massive GitLab CE container on limited memory.
@@ -24,7 +24,7 @@ This document summarizes the technical challenges faced, the resolutions impleme
 
 ---
 
-## 📝 Important Code Changes Made
+## Important Code Changes Made
 
 To achieve a production-like HTTPS environment locally, the following architectural code changes were implemented:
 
@@ -53,7 +53,7 @@ To achieve a production-like HTTPS environment locally, the following architectu
 
 ---
 
-## ⚙️ How It Works Behind the Scenes (The Basic Essence)
+## How It Works Behind the Scenes (The Basic Essence)
 
 ### HTTPS Traffic Flowchart
 
@@ -74,7 +74,7 @@ When you type `https://gitlab.local` into your browser, an elegant chain of Kube
 
 ---
 
-## 🔒 Security Warnings Explained (The "Not Secure" Prompt)
+## Security Warnings Explained (The "Not Secure" Prompt)
 When you load the browser, you will likely see a `Your connection to this site is not secure` warning. **This is completely expected and entirely safe for your local environment.**
 
 * **Why the browser complains:** On the public internet, recognized companies (like Google or Let's Encrypt) cryptographically "sign" a website's certificate to prove it is legitimate. Since `gitlab.local` is a private, fake domain existing only inside your computer, public authorities cannot route to it to verify it.

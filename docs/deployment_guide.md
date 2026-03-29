@@ -6,9 +6,9 @@ This document provides step-by-step instructions for deploying a fully functiona
 
 ## 1. Prerequisites
 
-*Note: This guide assumes you are deploying on a Linux environment (e.g., Ubuntu, KDE Plasma) with Docker Engine and Docker Compose installed. I have tested this guide on Linux KDE Plasma. I have mentioned the resources allocated by me on my machine.*
+*Note: This guide assumes a containerized deployment using Docker Engine and Docker Compose. I have tested and verified this configuration on both Linux (KDE Plasma) and Windows (WSL2) environments.*
 
-### Machine Specifications
+### Environment 1: Linux Machine Specifications (Local Hosting)
 
 > **Command Used:** `(base) sidhu@sidhu-kde:~$ lscpu`
 
@@ -68,13 +68,68 @@ fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush 
 - Tsx async abort: Not affected  
 - Vmscape: Mitigation; IBPB before exit to userspace
 
-**Host OS:** Linux environment (e.g., Ubuntu, KDE Plasma) with Docker Engine and Docker Compose installed.
+**Host OS:** Linux (Ubuntu/KDE Plasma) with Docker Engine and Docker Compose.
 
-**CPU:** ≥ 3 cores (GitLab requires 2 cores minimum; Runner requires 1 core).
+---
 
-**Memory:** ≥ 15 GB RAM on the host (8 GB allocated to GitLab, 1 GB to Runner and remaining headroom prevents host swapping).
+### Environment 2: Windows Machine Specifications (WSL2 Testing)
 
-**Network:** Ports `8081` (HTTP), `8443` (HTTPS), and `2223` (SSH) must be available on the host machine.
+**Memory Requirement:** ≥ 15 GB RAM on host (8 GB allocated to GitLab, 1 GB to GitLab Runner).  
+**Network Requirement:** Host ports `8081` (HTTP), `8443` (HTTPS), and `2223` (SSH) must be available.
+
+#### Hardware Details (Intel Core Ultra 7)
+
+> **Command Used:** `sidhu@sidhu:~$ lscpu` (via WSL2)
+
+**Architecture:** x86_64  
+**CPU op-mode(s):** 32-bit, 64-bit  
+**Address sizes:** 42 bits physical, 48 bits virtual  
+**Byte Order:** Little Endian  
+
+**CPU(s):** 8  
+**On-line CPU(s) list:** 0-7  
+**Vendor ID:** GenuineIntel  
+**Model Name:** Intel(R) Core(TM) Ultra 7 258V  
+**CPU Family:** 6  
+**Model:** 189  
+**Thread(s) per core:** 1  
+**Core(s) per socket:** 8  
+**Socket(s):** 1  
+**Stepping:** 1  
+**BogoMIPS:** 6604.79  
+
+**Flags:**  
+fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves avx_vnni vnmi umip waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize flush_l1d arch_capabilities
+
+**Virtualization:** VT-x (Hypervisor: Microsoft, Virtualization type: full)  
+
+**Caches (sum of all):**  
+- L1d: 384 KiB (8 instances)  
+- L1i: 512 KiB (8 instances)  
+- L2: 20 MiB (8 instances)  
+- L3: 12 MiB (1 instance)  
+
+**NUMA Nodes:**  
+- NUMA node(s): 1  
+- NUMA node0 CPU(s): 0-7  
+
+**Vulnerabilities:**  
+- Gather data sampling: Not affected  
+- Itlb multihit: Not affected  
+- L1tf: Not affected  
+- Mds: Not affected  
+- Meltdown: Not affected  
+- Mmio stale data: Not affected  
+- Reg file data sampling: Not affected  
+- Retbleed: Mitigation; Enhanced IBRS  
+- Spec rstack overflow: Not affected  
+- Spec store bypass: Mitigation; Speculative Store Bypass disabled via prctl  
+- Spectre v1: Mitigation; usercopy/swapgs barriers and __user pointer sanitization  
+- Spectre v2: Mitigation; Enhanced / Automatic IBRS; IBPB conditional; RSB filling; PBRSB-eIBRS SW sequence; BHI Not affected  
+- Srbds: Not affected  
+- Tsx async abort: Not affected  
+
+**Host OS:** Windows 11 with WSL2 (Ubuntu 24.04) and Docker Desktop integration.
 
 ---
 
@@ -462,7 +517,7 @@ test-job:
     - echo "Deployment = SUCCESS"
 ```
 
-Push the file and navigate to **CI/CD → Pipelines** in the project. The job should pass with a green ✅ in about 30 seconds.
+Push the file and navigate to **CI/CD → Pipelines** in the project. The job should pass with a green in about 30 seconds.
 
 ---
 
@@ -489,15 +544,15 @@ Every pod defines explicit `requests` and `limits` to prevent resource starvatio
 | **GitLab Runner** | 256 Mi / 1 Gi | 200m / 1000m |
 
 
-# 🚀 GitLab on Kubernetes – Deployment Guide
+# GitLab on Kubernetes – Deployment Guide
 
-## 📌 Overview
+## Overview
 
 This guide outlines the complete step-by-step process to set up a local Kubernetes cluster using Minikube, install required tools, and deploy a full GitLab environment including PostgreSQL and GitLab Runner.
 
 ---
 
-## 🧰 Prerequisites
+## Prerequisites
 
 Ensure the following are installed on your system:
 
@@ -507,7 +562,7 @@ Ensure the following are installed on your system:
 
 ---
 
-## ⚙️ Step 1: Install Required Dependencies
+## Step 1: Install Required Dependencies
 
 Update system packages and install required tools:
 
@@ -518,7 +573,7 @@ sudo apt install -y curl apt-transport-https ca-certificates gnupg
 
 ---
 
-## ☸️ Step 2: Install kubectl (Kubernetes CLI)
+## Step 2: Install kubectl (Kubernetes CLI)
 
 Add Kubernetes repository and install kubectl:
 
@@ -546,7 +601,7 @@ kubectl version --client
 
 ---
 
-## 🐳 Step 3: Install Minikube
+## Step 3: Install Minikube
 
 Download and install Minikube:
 
@@ -566,7 +621,7 @@ minikube version
 
 ---
 
-## 🔐 Step 4: Fix Docker Permissions
+## Step 4: Fix Docker Permissions
 
 Allow current user to access Docker:
 
@@ -583,7 +638,7 @@ docker ps
 
 ---
 
-## 🚀 Step 5: Start Kubernetes Cluster
+## Step 5: Start Kubernetes Cluster
 
 Start Minikube using Docker driver:
 
@@ -605,7 +660,7 @@ minikube   Ready
 
 ---
 
-## 📂 Step 6: Prepare Project Files
+## Step 6: Prepare Project Files
 
 Organize Kubernetes YAML files in a directory:
 
@@ -620,7 +675,7 @@ gitlab-k8s/
 
 ---
 
-## 🔐 Step 7: Create Kubernetes Secrets
+## Step 7: Create Kubernetes Secrets
 
 Create `secrets.yaml`:
 
@@ -644,7 +699,7 @@ kubectl apply -f secrets.yaml
 
 ---
 
-## 🧱 Step 8: Create Namespace
+## Step 8: Create Namespace
 
 ```bash
 kubectl create namespace gitlab
@@ -652,7 +707,7 @@ kubectl create namespace gitlab
 
 ---
 
-## ⚡ Step 9: Deploy All Resources
+## Step 9: Deploy All Resources
 
 Apply all Kubernetes configurations:
 
@@ -662,7 +717,7 @@ kubectl apply -f .
 
 ---
 
-## 🔍 Step 10: Verify Deployment
+## Step 10: Verify Deployment
 
 Check pods:
 
@@ -678,7 +733,7 @@ Running
 
 ---
 
-## 🌐 Step 11: Access GitLab over HTTPS
+## Step 11: Access GitLab over HTTPS
 
 1. Open your host machine `hosts` file (`C:\Windows\System32\drivers\etc\hosts`) and route the domain to your local loopback:
    `127.0.0.1  gitlab.local`
@@ -695,14 +750,14 @@ https://gitlab.local
 
 ---
 
-## 🔑 Step 12: Login
+## Step 12: Login
 
 * Username: `root`
 * Password: (from Kubernetes Secret)
 
 ---
 
-## 🛠 Step 13: Configure GitLab Runner
+## Step 13: Configure GitLab Runner
 
 Access runner container:
 
@@ -724,7 +779,7 @@ Provide:
 
 ---
 
-## 🧪 Step 14: Test CI/CD Pipeline
+## Step 14: Test CI/CD Pipeline
 
 Create `.gitlab-ci.yml` in a repository:
 
@@ -742,7 +797,7 @@ Push code to trigger pipeline.
 
 ---
 
-## ⚠️ Troubleshooting
+## Troubleshooting
 
 ### Pods not starting
 
@@ -765,7 +820,7 @@ minikube start
 
 ---
 
-## ✅ Conclusion
+## Conclusion
 
 You have successfully deployed:
 

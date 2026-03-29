@@ -200,7 +200,7 @@ kubectl apply -f gitlab.yaml
 kubectl apply -f runner.yaml
 ```
 
-> ⚠️ **Warning:** Deleting the namespace or running `minikube delete` will destroy all PersistentVolumeClaims and all stored GitLab data.
+> **Warning:** Deleting the namespace or running `minikube delete` will destroy all PersistentVolumeClaims and all stored GitLab data.
 
 ---
 
