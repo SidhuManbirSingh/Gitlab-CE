@@ -79,6 +79,7 @@ spec:
   tls:
     - hosts:
       - gitlab.local
+      - grafana.local
       secretName: gitlab-tls # Will use fake ingress cert until cert-manager gives a real one
   rules:
     - host: gitlab.local
@@ -89,6 +90,16 @@ spec:
             backend:
               service:
                 name: gitlab-service
+                port:
+                  number: 80
+    - host: grafana.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-service
                 port:
                   number: 80
 ---
