@@ -1,0 +1,32 @@
+---
+replicas: 1
+minimumMasterNodes: 1
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "2Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+esJavaOpts: "-Xmx1g -Xms1g"
+
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+
+antiAffinity: "soft"
+
+# Disable X-Pack security for easier Minikube deployment without certs/passwords
+extraEnvs:
+  - name: xpack.security.enabled
+    value: "false"
+  - name: xpack.security.http.ssl.enabled
+    value: "false"
+
+protocol: http
+
+clusterHealthCheckParams: "wait_for_status=yellow&timeout=1s"
