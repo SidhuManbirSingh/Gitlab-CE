@@ -2,7 +2,7 @@
 
 This document outlines the planned technical upgrades and feature sets to transition this project from a local Minikube environment to a production-grade enterprise architecture.
 
-## 🚀 Upcoming Milestones
+## Upcoming Milestones
 
 ### 1. Application Integration: Python Microservice
 - Deploy a standalone **Python (Flask/FastAPI) microservice** within the cluster.
