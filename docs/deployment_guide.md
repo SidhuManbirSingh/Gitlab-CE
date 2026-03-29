@@ -544,13 +544,7 @@ Every pod defines explicit `requests` and `limits` to prevent resource starvatio
 | **GitLab Runner** | 256 Mi / 1 Gi | 200m / 1000m |
 
 
-# GitLab on Kubernetes – Deployment Guide
-
-## Overview
-
-This guide outlines the complete step-by-step process to set up a local Kubernetes cluster using Minikube, install required tools, and deploy a full GitLab environment including PostgreSQL and GitLab Runner.
-
----
+# GitLab on Kubernetes
 
 ## Prerequisites
 
@@ -797,6 +791,34 @@ Push code to trigger pipeline.
 
 ---
 
+## Quick Start: Bring Everything Up (Full Stack)
+
+If your environment is already configured and you just need to spin up the entire cluster simultaneously, run these commands in order:
+
+```bash
+# 1. Start the cluster and enable the required ingress addon
+minikube start --driver=docker --memory=8192 --cpus=4
+minikube addons enable ingress
+
+# 2. Deploy cert-manager (Wait ~30 seconds for it to be ready before proceeding)
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+# 3. Create the namespace first to avoid deployment resource conflicts
+kubectl apply -f k8s/base/namespace.yaml
+
+# 4. (Optional) Bypass initial webhook timeout bugs natively caused by ingress-nginx
+kubectl delete ValidatingWebhookConfiguration ingress-nginx-admission --ignore-not-found=true
+
+# 5. Deploy the entire infrastructure stack in one go
+# (This includes GitLab, Postgres, Runner, Prometheus Configs, Prometheus, and Grafana)
+kubectl apply -f k8s/base/
+
+# 6. Open the network tunnel (Leave this running in a separate terminal)
+wsl minikube tunnel
+```
+
+---
+
 ## Troubleshooting
 
 ### Pods not starting
@@ -829,5 +851,7 @@ You have successfully deployed:
 * GitLab Runner
 * Persistent storage
 * CI/CD pipeline capability
+* Prometheues (System & Pod Monitoring)
+* Grafana (Metric Visualization Dashboards)
 
 This setup demonstrates a complete DevOps workflow using Kubernetes.
