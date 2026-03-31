@@ -154,7 +154,7 @@ Project/
 
 - Docker Engine & Docker Compose
 - Minikube (with Docker driver) + `kubectl`
-- Minimum 4 GB RAM and 2 CPUs allocated to Minikube
+- Minimum 8 GB RAM and 4 CPUs allocated to Minikube
 - WSL2 (if running on Windows)
 
 ---
