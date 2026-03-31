@@ -64,15 +64,16 @@ Project/
 │   ├── architecture.md              # Architecture overview
 │   ├── deployment_guide.md          # Full deployment walkthrough
 │   ├── troubleshooting.md           # Issues and resolutions
-│   ├── Short_Comings.md             # Known limitations and improvements
-│   ├── working-towards-HTTPS.md     # SSL/TLS migration notes
-│   ├── Implementing-Data-Scrapping-and-Visualization.md # Prometheus & Grafana docs
-│   ├── Implementing-Logging.md      # EFK Stack documentation
-│   ├── architecture-diagram.jpeg    # High-level overview
-│   ├── architecture-overall.png     # Setup diagram
-│   ├── https-traffic.png            # HTTPS traffic flow diagram
-│   ├── k8s-architecture.png         # K8s components diagram
-│   └── network-topology-diagram.jpeg# Network topology diagram
+│   ├── future-improvements.md       # Known limitations and improvements
+│   ├── implementing-https-and-ca.md # SSL/TLS migration notes
+│   ├── implementing-data-scrapping-and-visualization.md # Prometheus & Grafana docs
+│   ├── implementing-logging.md      # EFK Stack documentation
+│   └── reference-image/             # Reference architecture & setup diagrams
+│       ├── architecture-diagram.jpeg
+│       ├── architecture-overall.png
+│       ├── https-traffic.png
+│       ├── k8s-architecture.png
+│       └── network-topology-diagram.jpeg
 │
 ├── img/                             # Screenshots and evidence
 │   ├── Runner-Online.png            # Runner registration proof
@@ -142,9 +143,10 @@ Project/
 | [architecture.md](docs/architecture.md) | Component responsibilities, network design, storage strategy, and security model |
 | [deployment_guide.md](docs/deployment_guide.md) | Step-by-step deployment for both Docker Compose and Kubernetes |
 | [troubleshooting.md](docs/troubleshooting.md) | Real issues encountered during setup and their resolutions |
-| [Short_Comings.md](docs/Short_Comings.md) | Honest assessment of current limitations and planned improvements |
-| [Implementing-Data-Scrapping-and-Visualization.md](docs/Implementing-Data-Scrapping-and-Visualization.md) | Deep-dive into Prometheus scraping and Grafana dashboard integration |
-| [Implementing-Logging.md](docs/Implementing-Logging.md) | Architectural details on debugging and deploying the customized EFK stack |
+| [future-improvements.md](docs/future-improvements.md) | Honest assessment of current limitations and planned improvements |
+| [implementing-https-and-ca.md](docs/implementing-https-and-ca.md) | SSL/TLS migration notes |
+| [implementing-data-scrapping-and-visualization.md](docs/implementing-data-scrapping-and-visualization.md) | Deep-dive into Prometheus scraping and Grafana dashboard integration |
+| [implementing-logging.md](docs/implementing-logging.md) | Architectural details on debugging and deploying the customized EFK stack |
 
 ---
 
@@ -159,7 +161,7 @@ Project/
 
 ## Known Limitations & Future Work
 
-Mentioned inside of the Short_Comings.md file. 
+Mentioned inside of the future-improvements.md file. 
 
 **Key items:**
 
